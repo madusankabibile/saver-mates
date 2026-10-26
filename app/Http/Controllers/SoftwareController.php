@@ -160,6 +160,7 @@ class SoftwareController extends Controller
             'os_type'     => $match['os_type'],
             'category'    => $match['category'],
             'image_url'   => $match['image'] ?? null,
+            'images'      => $match['images'] ?? [],
         ]);
     }
 

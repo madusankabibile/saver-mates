@@ -233,13 +233,25 @@ class SoftwareLookup
             }
         }
 
-        // First screenshot image (wsrv.nl CDN).
-        $image = null;
-        $imgs  = $xp2->query('//img[contains(@src, "imgcdn.org") or contains(@src, "wsrv.nl")]');
-        if ($imgs && $imgs->length > 0) {
-            $src = trim($imgs->item(0)->getAttribute('src'));
-            if ($src !== '') $image = $src;
+        // Collect all gallery images that belong to this software (slug appears in URL).
+        // Deduplicate and cap at 8 so the picker stays manageable.
+        $images = [];
+        $slug   = trim($best['href'], '/');                   // e.g. "windows/vlc-media-player"
+        $slugPart = explode('/', $slug)[1] ?? '';             // "vlc-media-player"
+        $imgs   = $xp2->query('//img[contains(@src, "imgcdn.org") or contains(@src, "wsrv.nl")]');
+        if ($imgs) {
+            $seen = [];
+            foreach ($imgs as $img) {
+                $src = html_entity_decode(trim($img->getAttribute('src')), ENT_QUOTES);
+                if ($src === '' || isset($seen[$src])) continue;
+                // Only include images that belong to this software's directory.
+                if ($slugPart !== '' && ! str_contains($src, $slugPart)) continue;
+                $seen[$src] = true;
+                $images[]   = $src;
+                if (count($images) >= 8) break;
+            }
         }
+        $image = $images[0] ?? null;
 
         // OS type from URL platform segment.
         $osMap = [
@@ -277,6 +289,7 @@ class SoftwareLookup
             'os_type'     => $os,
             'category'    => $category,
             'image'       => $image,
+            'images'      => $images,
         ];
     }
 

@@ -120,6 +120,42 @@
                     form._lookupImageUrl = d.image_url;
                     form._lookupThumb = null;
                 }
+
+                // Gallery picker — only shown when FileCR returns multiple images.
+                const gallery = $('[data-sw-gallery]', form);
+                if (gallery) {
+                    // Remove old row (keep the label paragraph).
+                    const oldRow = $('[data-sw-gallery-row]', gallery);
+                    if (oldRow) oldRow.remove();
+
+                    const imgs = Array.isArray(d.images) ? d.images : (d.image_url ? [d.image_url] : []);
+                    if (imgs.length > 1) {
+                        const row = document.createElement('div');
+                        row.className = 'sw-gallery-picker-row';
+                        row.dataset.swGalleryRow = '';
+
+                        imgs.forEach((src, i) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'sw-gal-btn' + (i === 0 ? ' is-active' : '');
+                            btn.setAttribute('aria-label', 'Select image ' + (i + 1));
+                            btn.innerHTML = `<img src="${src}" alt="" loading="lazy" crossorigin="anonymous">`;
+                            btn.addEventListener('click', () => {
+                                $$('.sw-gal-btn', row).forEach((b) => b.classList.remove('is-active'));
+                                btn.classList.add('is-active');
+                                form._lookupImageUrl = src;
+                                form._lookupThumb = null;
+                                thumbPrev.innerHTML = `<img src="${src}" alt="Thumbnail preview" crossorigin="anonymous">`;
+                            });
+                            row.appendChild(btn);
+                        });
+
+                        gallery.appendChild(row);
+                        gallery.hidden = false;
+                    } else {
+                        gallery.hidden = true;
+                    }
+                }
             } catch (_) {
                 if (token === lookupToken && lookupNote) {
                     lookupNote.textContent = 'Fill in the details below. We couldn\'t look up this file online.';

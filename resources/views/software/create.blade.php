@@ -139,6 +139,11 @@
                         @error('thumbnail') <p class="error-text">{{ $message }}</p> @enderror
                     </div>
                 </div>
+
+                {{-- Gallery picker: shown when FileCR returns multiple images --}}
+                <div class="sw-gallery-picker" data-sw-gallery hidden>
+                    <p class="small muted" style="margin:0 0 .5rem">Select a thumbnail from the gallery:</p>
+                </div>
             </section>
         </div>
 
