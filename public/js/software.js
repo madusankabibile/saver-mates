@@ -31,6 +31,7 @@
         let file          = null;
         let job           = null;
         let lookupToken   = null;
+        let fileVersion   = null;  // version parsed from the filename — always wins over lookup
         let autoFilled    = {};    // id -> value we put in (so we can detect user edits)
         let userEdited    = {};    // id -> true when user has changed the field themselves
 
@@ -104,9 +105,10 @@
                     return;
                 }
 
-                autoFill('sw-title',       d.version ? `${d.title} ${d.version}` : d.title);
+                const useVersion = fileVersion || d.version;
+                autoFill('sw-title',       useVersion ? `${d.title} ${useVersion}` : d.title);
                 autoFill('sw-description', d.description);
-                autoFill('sw-version',     d.version);
+                autoFill('sw-version',     useVersion);
                 autoFill('sw-os_type',     d.os_type);
                 autoFill('sw-category',    d.category);
 
@@ -150,6 +152,7 @@
             form._lookupThumb = null;
             form._lookupImageUrl = null;
             lookupToken = null;
+            fileVersion = null;
             autoFilled = {};
             userEdited = {};
 
@@ -162,11 +165,9 @@
             actions.hidden = false;
 
             // Pre-fill title and version from filename.
-            const suggestedTitle   = titleFromFilename(f.name);
-            const suggestedVersion = versionFromFilename(f.name);
-
-            autoFill('sw-title',   suggestedTitle);
-            autoFill('sw-version', suggestedVersion);
+            fileVersion = versionFromFilename(f.name);
+            autoFill('sw-title',   titleFromFilename(f.name));
+            autoFill('sw-version', fileVersion);
 
             // Reset lookup note.
             if (lookupNote) lookupNote.textContent = 'Fill in the details below. We\'ll try to look up info from the file name.';
