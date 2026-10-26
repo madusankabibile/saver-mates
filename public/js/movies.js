@@ -611,6 +611,7 @@
         const errorEl = $('[data-upload-error]', form);
         const progressBox = $('[data-progressbox]', form);
         const langOptions = $('[data-lang-options]').innerHTML;
+        const lookupNote = $('[data-lookup-note]', form);
 
         let file = null;
         let duration = null;
@@ -618,6 +619,10 @@
         let customThumb = null;     // or the uploader's own image
         let subs = [];              // [{ file, lang }]
         let job = null;
+        let poster = null;          // { blob, url } found online for this file
+        let handPicked = false;     // the uploader chose a thumbnail themselves
+        let lookupToken = null;     // the file the running lookup is for
+        let autoFilled = {};        // field id => the value we put there
 
         const showError = (msg) => {
             errorEl.textContent = msg;
@@ -626,6 +631,63 @@
 
         function setPreview(url) {
             preview.innerHTML = url ? `<img src="${url}" alt="Thumbnail preview">` : '<span class="small muted">No thumbnail chosen</span>';
+        }
+
+        function selectTile(tile, blob, url) {
+            $$('.mv-frame', framesEl).forEach((x) => x.classList.remove('is-active'));
+            tile.classList.add('is-active');
+            thumbBlob = blob;
+            customThumb = null;
+            thumbInput.value = '';
+            setPreview(url);
+        }
+
+        /* Fill a field we filled before (or that is empty); leave the uploader's own words. */
+        function autoFill(id, value) {
+            const el = $('#' + id, form);
+            if (!value || (el.value.trim() && el.value !== autoFilled[id])) return;
+            if (el.tagName === 'SELECT' && !$$('option', el).some((o) => o.value === value)) return;
+            el.value = autoFilled[id] = value;
+        }
+
+        /* Title, description, category and a poster, found online from the file name. */
+        async function lookUp(f) {
+            const token = (lookupToken = {});
+            const fallback = 'We filled in a title from the file name. Change anything you like.';
+            lookupNote.textContent = 'Looking up this movie’s details…';
+
+            try {
+                const d = await SM.getJson(form.dataset.lookupUrl + '?name=' + encodeURIComponent(f.name));
+                if (token !== lookupToken) return;
+                if (!d.found) {
+                    lookupNote.textContent = 'We filled in a title from the file name. No details were found for it, so add them yourself.';
+                    return;
+                }
+
+                autoFill('mv-title', d.title);
+                autoFill('mv-description', d.description);
+                autoFill('mv-category', d.category);
+                lookupNote.textContent = `We found the details for “${d.title}”. Check them and change anything you like.`;
+
+                if (!d.thumbnail) return;
+                const blob = await fetch(d.thumbnail).then((r) => r.blob());
+                if (token !== lookupToken) return;
+
+                poster = { blob, url: URL.createObjectURL(blob) };
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'mv-frame';
+                b.innerHTML = `<img src="${poster.url}" alt="Movie poster"><span>Poster</span>`;
+                b.addEventListener('click', (e) => {
+                    if (e.isTrusted) handPicked = true;
+                    selectTile(b, poster.blob, poster.url);
+                });
+                framesEl.prepend(b);
+                framesEl.classList.add('has-poster');
+                if (!handPicked && !customThumb) b.click();
+            } catch (_) {
+                if (token === lookupToken) lookupNote.textContent = fallback;
+            }
         }
 
         function pickFile(f) {
@@ -640,6 +702,8 @@
             file = f;
             duration = null;
             thumbBlob = null;
+            poster = null;
+            handPicked = false;
 
             $('[data-video-name]', form).textContent = f.name;
             $('[data-video-size]', form).textContent = ChunkUploader.formatBytes(f.size);
@@ -649,10 +713,16 @@
             actions.hidden = false;
             warning.hidden = ['mp4', 'm4v', 'webm'].includes(ext);
 
-            const title = $('#mv-title', form);
-            if (!title.value.trim()) title.value = titleFromFile(f.name);
+            // Details found for the previous file go; the uploader's own stay.
+            ['mv-description', 'mv-category'].forEach((id) => {
+                const el = $('#' + id, form);
+                if (autoFilled[id] && el.value === autoFilled[id]) el.value = '';
+            });
+            autoFill('mv-title', titleFromFile(f.name));
 
             framesEl.innerHTML = '';
+            framesEl.classList.remove('has-poster');
+            lookUp(f);
             if (!customThumb) preview.innerHTML = '<span class="small muted">Picking frames from the video&hellip;</span>';
             $('[data-frame-note]', form).textContent = 'Pick one of the frames from your video, or upload your own image.';
 
@@ -665,20 +735,18 @@
                         b.type = 'button';
                         b.className = 'mv-frame';
                         b.innerHTML = `<img src="${frame.url}" alt="Frame at ${fmt(frame.time)}"><span>${fmt(frame.time)}</span>`;
-                        b.addEventListener('click', () => {
-                            $$('.mv-frame', framesEl).forEach((x) => x.classList.remove('is-active'));
-                            b.classList.add('is-active');
-                            thumbBlob = frame.blob;
-                            customThumb = null;
-                            thumbInput.value = '';
-                            setPreview(frame.url);
+                        b.addEventListener('click', (e) => {
+                            if (e.isTrusted) handPicked = true;
+                            selectTile(b, frame.blob, frame.url);
                         });
                         framesEl.appendChild(b);
+                        // A poster found online is the better default.
+                        if (poster || handPicked || customThumb) return;
                         if (i === frames.findIndex((x) => !x.dark) || (i === 0 && frames.every((x) => x.dark))) b.click();
                     });
                 })
                 .catch(() => {
-                    if (!customThumb) setPreview(null);
+                    if (!customThumb && !poster) setPreview(null);
                     $('[data-frame-note]', form).textContent =
                         'Your browser could not read frames from this file (common for MKV / HEVC). Upload an image to use as the thumbnail.';
                 })

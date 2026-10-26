@@ -531,6 +531,9 @@ body.is-theater .rail { display: none; }
     margin-top: .5rem;
 }
 
+/* Six tiles (the poster found online plus five frames) sit in two rows. */
+.mv-frames.has-poster { grid-template-columns: repeat(3, 1fr); }
+
 .mv-frame {
     position: relative;
     padding: 0;

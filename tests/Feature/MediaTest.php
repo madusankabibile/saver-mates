@@ -209,7 +209,77 @@ class MediaTest extends TestCase
     {
         $this->post(route('uploads.chunk'), [])->assertRedirect(route('login'));
         $this->get(route('movies.create'))->assertRedirect(route('login'));
+        $this->get(route('movies.lookup', ['name' => 'x.mp4']))->assertRedirect(route('login'));
         $this->get(route('movies.index'))->assertOk();
+    }
+
+    /** A Wikipedia search that finds a film, its soundtrack and an older film of the same name. */
+    protected function knowMovie(): void
+    {
+        config(['services.movie_lookup.tmdb_key' => null, 'services.movie_lookup.wiki_url' => 'https://en.wikipedia.org']);
+
+        $img = imagecreatetruecolor(200, 300);
+        ob_start();
+        imagejpeg($img);
+        $poster = ob_get_clean();
+
+        $this->catalogue = [
+            'en.wikipedia.org/w/api.php' => Http::response(['query' => ['pages' => [
+                '1' => ['pageid' => 1, 'index' => 1, 'title' => 'Zorvath Rising (1984 film)',
+                    'extract' => 'Zorvath Rising is a 1984 horror film about a haunted lighthouse.'],
+                '2' => ['pageid' => 2, 'index' => 2, 'title' => 'Zorvath Rising (soundtrack)',
+                    'extract' => 'Zorvath Rising is the soundtrack album to the 2021 film.'],
+                '3' => ['pageid' => 3, 'index' => 3, 'title' => 'Zorvath Rising (2021 film)',
+                    'extract' => 'Zorvath Rising (pronounced [zor-vath]) is a 2021 American animated adventure film. It follows a young dragon.',
+                    'thumbnail' => ['source' => 'https://upload.test/poster.jpg']],
+            ]]]),
+            'upload.test/poster.jpg' => Http::response($poster, 200, ['Content-Type' => 'image/jpeg']),
+        ];
+    }
+
+    public function test_movie_details_are_found_from_the_file_name(): void
+    {
+        $this->knowMovie();
+
+        $res = $this->actingAs($this->member())
+            ->getJson(route('movies.lookup', ['name' => 'Zorvath.Rising.2021.1080p.WEBRip.x264-[YTS].mkv']))
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'title' => 'Zorvath Rising (2021)',
+                'description' => 'Zorvath Rising is a 2021 American animated adventure film. It follows a young dragon.',
+                'category' => 'Animation',
+            ]);
+
+        // The portrait poster comes back framed as a 16:9 thumbnail.
+        $jpeg = base64_decode(substr($res->json('thumbnail'), strlen('data:image/jpeg;base64,')));
+        $this->assertSame([1280, 720], array_slice(getimagesizefromstring($jpeg), 0, 2));
+    }
+
+    public function test_a_movie_from_another_year_is_not_used(): void
+    {
+        $this->knowMovie();
+        $this->catalogue['en.wikipedia.org/w/api.php'] = Http::response(['query' => ['pages' => [
+            '1' => ['pageid' => 1, 'index' => 1, 'title' => 'Zorvath Rising (1984 film)',
+                'extract' => 'Zorvath Rising is a 1984 horror film about a haunted lighthouse.'],
+        ]]]);
+
+        $this->actingAs($this->member())
+            ->getJson(route('movies.lookup', ['name' => 'Zorvath Rising (2021).mp4']))
+            ->assertOk()
+            ->assertExactJson(['found' => false]);
+    }
+
+    public function test_movie_file_names_and_genres_are_read(): void
+    {
+        $this->assertSame(['Luck', 2022], \App\Support\MovieLookup::parseName('Luck.2022.720p.WEBRip.x264.mp4'));
+        $this->assertSame(['The Dark Knight', 2008], \App\Support\MovieLookup::parseName('The Dark Knight (2008) [1080p].mkv'));
+        $this->assertSame(['Frozen', null], \App\Support\MovieLookup::parseName('Frozen.1080p.BluRay.mp4'));
+
+        $this->assertSame('Sci-Fi', \App\Support\MovieLookup::category('science fiction heist'));
+        $this->assertSame('Action', \App\Support\MovieLookup::category('Indian Tamil-language action comedy'));
+        $this->assertSame('Animation', \App\Support\MovieLookup::category('Family', 'Comedy', 'Animation'));
+        $this->assertNull(\App\Support\MovieLookup::category('TV Movie'));
     }
 
     public function test_views_count_once_per_session_and_only_owner_edits(): void

@@ -6,6 +6,7 @@ use App\Models\Movie;
 use App\Models\MovieSubtitle;
 use App\Support\ChunkedUpload;
 use App\Support\MediaLibrary;
+use App\Support\MovieLookup;
 use App\Support\Subtitles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -114,6 +115,31 @@ class MovieController extends Controller
         }
 
         return response()->json(['url' => route('movies.show', $movie)]);
+    }
+
+    /**
+     * Details for the upload form, found online from the video's file name.
+     * The picture comes back ready to use as the thumbnail, so the browser
+     * never has to reach the outside sites itself.
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+        $match = MovieLookup::find($data['name']);
+
+        if (! $match) {
+            return response()->json(['found' => false]);
+        }
+
+        $thumbnail = MovieLookup::thumbnail($match);
+
+        return response()->json([
+            'found' => true,
+            'title' => MovieLookup::displayTitle($match),
+            'description' => $match['description'],
+            'category' => $match['category'],
+            'thumbnail' => $thumbnail ? 'data:image/jpeg;base64,'.base64_encode($thumbnail) : null,
+        ]);
     }
 
     public function edit(Request $request, Movie $movie): View

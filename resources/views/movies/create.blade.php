@@ -22,7 +22,7 @@
     </div>
 
     <form class="mv-upload" data-movie-upload action="{{ route('movies.store') }}"
-          data-chunk-url="{{ route('uploads.chunk') }}" novalidate>
+          data-chunk-url="{{ route('uploads.chunk') }}" data-lookup-url="{{ route('movies.lookup') }}" novalidate>
 
         {{-- 1. The video --------------------------------------------------- --}}
         <section class="up-step">
@@ -64,7 +64,7 @@
                     <span class="up-num">2</span>
                     <div>
                         <h2>Details</h2>
-                        <p>We filled in a title from the file name. Change anything you like.</p>
+                        <p data-lookup-note>We filled in a title from the file name. Change anything you like.</p>
                     </div>
                 </div>
 

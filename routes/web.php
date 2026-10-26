@@ -146,6 +146,7 @@ Route::middleware('auth')->group(function () {
     /* Movies ------------------------------------------------------------ */
     Route::get('/movies/upload', [MovieController::class, 'create'])->name('movies.create');
     Route::post('/movies', [MovieController::class, 'store'])->name('movies.store');
+    Route::get('/movies/lookup', [MovieController::class, 'lookup'])->middleware('throttle:30,1')->name('movies.lookup');
     Route::get('/movies/{movie}/edit', [MovieController::class, 'edit'])->name('movies.edit');
     Route::post('/movies/{movie}', [MovieController::class, 'update'])->name('movies.update');
     Route::delete('/movies/{movie}', [MovieController::class, 'destroy'])->name('movies.destroy');

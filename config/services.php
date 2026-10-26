@@ -41,6 +41,17 @@ return [
         'fallback_url' => env('SONG_LOOKUP_FALLBACK_URL', 'https://itunes.apple.com'),
     ],
 
+    /* Movie details for uploads (title, year, description, category, poster),
+       looked up by file name. TMDB is used when a key is set (a v3 API key or
+       a v4 read token); otherwise Wikipedia, which needs no key. Empty URLs
+       turn a source off. */
+    'movie_lookup' => [
+        'tmdb_key' => env('TMDB_API_KEY'),
+        'tmdb_url' => env('TMDB_URL', 'https://api.themoviedb.org/3'),
+        'tmdb_images' => env('TMDB_IMAGE_URL', 'https://image.tmdb.org/t/p'),
+        'wiki_url' => env('MOVIE_LOOKUP_WIKI_URL', 'https://en.wikipedia.org'),
+    ],
+
     'wallpaper' => [
         'url' => env('COVER_WALLPAPER_URL', 'https://v2.xxapi.cn/api/wallpaper'),
     ],
