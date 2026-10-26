@@ -194,10 +194,11 @@
 
         let submitted = false;
 
-        /* Prevent navigating away mid-upload, but not after a successful save. */
-        window.addEventListener('beforeunload', (e) => {
-            if (job && !submitted) { e.preventDefault(); e.returnValue = ''; }
-        });
+        /* Prevent navigating away mid-upload. Named so we can remove it on success. */
+        function onBeforeUnload(e) {
+            if (job) { e.preventDefault(); e.returnValue = ''; }
+        }
+        window.addEventListener('beforeunload', onBeforeUnload);
 
         const setBusy = (busy) => {
             $$('input, textarea, select, button', form).forEach((el) => {
@@ -214,6 +215,8 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            if (submitted) return;
 
             if (job) {
                 job.cancel();
@@ -280,12 +283,13 @@
                 if (label) label.textContent = 'Done!';
                 if (bar)   bar.style.width   = '100%';
 
-                // Clear form inputs so the browser's dirty-form detection does not
-                // fire a second "leave page?" dialog during the redirect.
+                // Remove the beforeunload guard and reset the form so the browser's
+                // native file-input dirty detection does not show a leave-page dialog.
+                window.removeEventListener('beforeunload', onBeforeUnload);
                 form.reset();
 
-                // fetch() follows the server's 302 redirect automatically; res.url
-                // is already the show-page URL, so use it directly.
+                // fetch() follows the server's 302 automatically; res.url is the
+                // final show-page URL.
                 location.href = res.url || '/software';
             } catch (err) {
                 job = null;
