@@ -1633,6 +1633,7 @@ a.mu-artist:hover { color: var(--ink); }
     margin-bottom: .15rem;
 }
 .sw-sub { font-size: .78rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-version { font-size: .72rem; font-weight: 500; color: var(--ink-soft); margin-left: .2rem; }
 
 /* Show page */
 .sw-hero {

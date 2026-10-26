@@ -362,9 +362,6 @@
        ==================================================================== */
 
     document.addEventListener('DOMContentLoaded', () => {
-        const uploadForm = document.querySelector('[data-sw-upload]');
-        if (uploadForm) initSoftwareUpload(uploadForm);
-
         const showEl = document.querySelector('[data-sw-show]');
         if (showEl) initSoftwareShow(showEl);
     });
