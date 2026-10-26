@@ -192,9 +192,11 @@
             drop.hidden   = false;
         });
 
-        /* Prevent navigating away mid-upload. */
+        let submitted = false;
+
+        /* Prevent navigating away mid-upload, but not after a successful save. */
         window.addEventListener('beforeunload', (e) => {
-            if (job) { e.preventDefault(); e.returnValue = ''; }
+            if (job && !submitted) { e.preventDefault(); e.returnValue = ''; }
         });
 
         const setBusy = (busy) => {
@@ -273,17 +275,18 @@
                     throw new Error(body.message || Object.values(body.errors || {})[0]?.[0] || 'The upload could not be saved.');
                 }
 
+                submitted = true;
                 job = null;
                 if (label) label.textContent = 'Done!';
                 if (bar)   bar.style.width   = '100%';
 
-                // The controller redirects server-side; follow the redirect URL if returned,
-                // otherwise let the browser follow the HTTP redirect.
-                if (body.redirect) {
-                    location.href = body.redirect;
-                } else {
-                    location.href = body.url || '/software';
-                }
+                // Clear form inputs so the browser's dirty-form detection does not
+                // fire a second "leave page?" dialog during the redirect.
+                form.reset();
+
+                // fetch() follows the server's 302 redirect automatically; res.url
+                // is already the show-page URL, so use it directly.
+                location.href = res.url || '/software';
             } catch (err) {
                 job = null;
                 setBusy(false);
