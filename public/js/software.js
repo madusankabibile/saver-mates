@@ -104,7 +104,7 @@
                     return;
                 }
 
-                autoFill('sw-title',       d.title);
+                autoFill('sw-title',       d.version ? `${d.title} ${d.version}` : d.title);
                 autoFill('sw-description', d.description);
                 autoFill('sw-version',     d.version);
                 autoFill('sw-os_type',     d.os_type);

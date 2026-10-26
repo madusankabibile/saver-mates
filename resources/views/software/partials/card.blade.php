@@ -19,7 +19,7 @@
     <span class="sw-meta">
         <x-avatar :user="$item->user" :size="34" />
         <span class="sw-text">
-            <span class="sw-title">{{ $item->title }}@if($item->version) <span class="sw-version">v{{ $item->version }}</span>@endif</span>
+            <span class="sw-title">{{ $item->title }}</span>
             <span class="sw-sub">{{ $item->user->name }}</span>
             <span class="sw-sub">{{ $item->downloadsLabel() }} &middot; {{ $item->created_at->diffForHumans() }}</span>
         </span>
