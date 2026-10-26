@@ -11,7 +11,26 @@ no internet connection needed.
 ![MySQL](https://img.shields.io/badge/MySQL%20%2F%20MariaDB-supported-4479a1?logo=mysql&logoColor=white)
 ![No build step](https://img.shields.io/badge/Node%20build-not%20required-07b37f)
 
-<!-- Add screenshots here, e.g. ![Newsfeed](docs/screenshots/feed.png) -->
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105827.png" alt="Newsfeed"/><br/><sub><b>Newsfeed</b> — post updates, photos and articles</sub></td>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105855.png" alt="Post detail"/><br/><sub><b>Post detail</b> — reactions, comments and sharing</sub></td>
+  </tr>
+  <tr>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105910.png" alt="Movies library"/><br/><sub><b>Movies</b> — portrait poster grid with search and categories</sub></td>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105803.png" alt="Movie player"/><br/><sub><b>Movie player</b> — theater mode, subtitles and Up Next queue</sub></td>
+  </tr>
+  <tr>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105942.png" alt="Music library"/><br/><sub><b>Music</b> — artist browse, queue and persistent player</sub></td>
+    <td><img src="storage/sc/Screenshot 2026-10-26 110020.png" alt="Chat"/><br/><sub><b>Chat</b> — private messages with drive file sharing</sub></td>
+  </tr>
+  <tr>
+    <td><img src="storage/sc/Screenshot 2026-10-26 110000.png" alt="My Drive"/><br/><sub><b>My Drive</b> — private cloud storage with publish-to-network</sub></td>
+    <td><img src="storage/sc/Screenshot 2026-10-26 105923.png" alt="Movies browsing"/><br/><sub><b>Movies</b> — filter by category, sort by views or likes</sub></td>
+  </tr>
+</table>
 
 SaverMate is built for offices, hospitals, schools and labs that want an intranet
 they can run themselves. It is stock Laravel 10 with Blade views, hand-written CSS
