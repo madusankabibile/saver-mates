@@ -9,12 +9,12 @@ use Illuminate\Support\Str;
  * Finds software metadata and a relevant icon from the uploaded file's name.
  *
  * Source priority:
- *  1. iTunes Search API  — real app icons, mobile/desktop apps, free, no key
- *  2. GitHub Search API  — OSS metadata, free, 60 req/hour unauthenticated
- *  3. Wikipedia API      — software logos from article infoboxes
+ *  1. FileCR             — screenshots + metadata for Windows/macOS/Android apps
+ *  2. iTunes Search API  — real app icons for iOS/macOS apps, free, no key
+ *  3. GitHub Search API  — OSS metadata, free, 60 req/hour unauthenticated
+ *  4. Wikipedia API      — software logos from article infoboxes
  *
- * Images from GitHub owner avatars are intentionally skipped; they are
- * profile photos, not software icons.
+ * GitHub owner avatars are intentionally skipped (profile photos ≠ app icons).
  */
 class SoftwareLookup
 {
@@ -25,7 +25,13 @@ class SoftwareLookup
             return null;
         }
 
-        // iTunes has real app icons — try it first.
+        // FileCR has screenshots and metadata for most popular desktop/mobile apps.
+        $fcr = self::fromFileCr($name);
+        if ($fcr) {
+            return $fcr;
+        }
+
+        // iTunes has real app icons — good for iOS/macOS apps not on FileCR.
         $itunes = self::fromItunes($name);
         if ($itunes) {
             return $itunes;
@@ -36,7 +42,6 @@ class SoftwareLookup
         $wp = self::fromWikipedia($name);
 
         if ($gh && $wp) {
-            // Wikipedia article images are actual software logos; prefer them.
             if (empty($gh['image']) && ! empty($wp['image'])) {
                 $gh['image'] = $wp['image'];
             }
@@ -124,6 +129,186 @@ class SoftwareLookup
     // -------------------------------------------------------------------------
     // Sources
     // -------------------------------------------------------------------------
+
+    /**
+     * FileCR search — screenshots and metadata for popular Windows/macOS/Android apps.
+     * Scrapes the HTML search results page then the detail page.
+     */
+    private static function fromFileCr(string $name): ?array
+    {
+        try {
+            $searchHtml = Http::timeout(8)
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; SaverMate/1.0)'])
+                ->get('https://filecr.com/search/', ['q' => $name])
+                ->throw()
+                ->body();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        // Parse the search results to find the best-matching software link.
+        libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML($searchHtml, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($dom);
+
+        // Cards are <a> tags with href like /windows/slug/ or /android/slug/
+        $links = $xpath->query('//a[contains(@href, "/windows/") or contains(@href, "/macos/") or contains(@href, "/android/") or contains(@href, "/ms-windows/")]/@href');
+
+        $best      = null;
+        $bestScore = 0.0;
+
+        if ($links) {
+            $seen = [];
+            foreach ($links as $attr) {
+                $href = trim($attr->value);
+                // Must be a detail page: /{platform}/{slug}/ — exactly 3 segments
+                if (! preg_match('#^/([a-z\-]+)/([a-z0-9\-]+)/$#', $href, $m)) {
+                    continue;
+                }
+                if (isset($seen[$href])) continue;
+                $seen[$href] = true;
+
+                $slug     = str_replace('-', ' ', $m[2]);
+                $nameLow  = mb_strtolower($name);
+                $slugLow  = mb_strtolower($slug);
+                similar_text($nameLow, $slugLow, $pct);
+                // Boost score when the slug starts with the search term (e.g. "vlc" → "vlc media player").
+                if (str_starts_with($slugLow, $nameLow)) {
+                    $pct = max($pct, 60.0);
+                }
+                if ($pct > $bestScore) {
+                    $bestScore = $pct;
+                    $best = ['href' => $href, 'platform' => $m[1]];
+                }
+            }
+        }
+
+        if (! $best || $bestScore < 35) {
+            return null;
+        }
+
+        // Fetch the detail page.
+        try {
+            $detailHtml = Http::timeout(8)
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; SaverMate/1.0)'])
+                ->get('https://filecr.com' . $best['href'])
+                ->throw()
+                ->body();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $dom2 = new \DOMDocument();
+        $dom2->loadHTML($detailHtml, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xp2 = new \DOMXPath($dom2);
+
+        // Title from <h1>
+        $h1s   = $xp2->query('//h1');
+        $rawTitle = $h1s && $h1s->length > 0 ? trim($h1s->item(0)->textContent) : '';
+        if ($rawTitle === '') return null;
+
+        // Split title into name + version: "VLC Media Player 3.0.24" → name="VLC Media Player", version="3.0.24"
+        $version = null;
+        $title   = $rawTitle;
+        if (preg_match('/^(.*?)\s+(v?\d[\d\.]+[a-z0-9\-]*)$/i', $rawTitle, $vm)) {
+            $title   = trim($vm[1]);
+            $version = ltrim($vm[2], 'vV');
+        }
+
+        // Description: first non-empty paragraph that is long enough.
+        $desc = null;
+        $paras = $xp2->query('//p');
+        if ($paras) {
+            foreach ($paras as $p) {
+                $text = trim($p->textContent);
+                if (mb_strlen($text) > 60 && ! str_starts_with(strtolower($text), 'free download')) {
+                    $desc = Str::limit($text, 800);
+                    break;
+                }
+                if (mb_strlen($text) > 60) {
+                    $desc = Str::limit($text, 800);
+                    // keep looking for a non-"Free Download" paragraph
+                }
+            }
+        }
+
+        // First screenshot image (wsrv.nl CDN).
+        $image = null;
+        $imgs  = $xp2->query('//img[contains(@src, "imgcdn.org") or contains(@src, "wsrv.nl")]');
+        if ($imgs && $imgs->length > 0) {
+            $src = trim($imgs->item(0)->getAttribute('src'));
+            if ($src !== '') $image = $src;
+        }
+
+        // OS type from URL platform segment.
+        $osMap = [
+            'windows'    => 'Windows',
+            'ms-windows' => 'Windows',
+            'macos'      => 'macOS',
+            'mac'        => 'macOS',
+            'android'    => 'Android',
+            'ios'        => 'iOS',
+            'linux'      => 'Linux',
+        ];
+        $os = $osMap[$best['platform']] ?? null;
+
+        // Category from the first category link on the detail page.
+        $catLinks = $xp2->query('//a[contains(@href, "/' . $best['platform'] . '/") and string-length(@href) > 10]');
+        $category = null;
+        if ($catLinks) {
+            foreach ($catLinks as $cl) {
+                $href2 = $cl->getAttribute('href');
+                // Category links are /{platform}/{category}/ — skip the software itself
+                if ($href2 === $best['href']) continue;
+                $catText = trim($cl->textContent);
+                if ($catText !== '' && mb_strlen($catText) < 40) {
+                    $category = self::mapFileCrCategory($catText);
+                    break;
+                }
+            }
+        }
+
+        return [
+            'key'         => 'fcr:' . $best['href'],
+            'title'       => $title,
+            'version'     => $version,
+            'description' => $desc,
+            'os_type'     => $os,
+            'category'    => $category,
+            'image'       => $image,
+        ];
+    }
+
+    private static function mapFileCrCategory(string $cat): ?string
+    {
+        $cat = strtolower($cat);
+        $map = [
+            'multimedia'          => 'Media & Entertainment',
+            'audio'               => 'Media & Entertainment',
+            'video'               => 'Media & Entertainment',
+            'graphic'             => 'Graphics & Design',
+            'design'              => 'Graphics & Design',
+            'photo'               => 'Graphics & Design',
+            'office'              => 'Productivity',
+            'productivity'        => 'Productivity',
+            'developer'           => 'Developer Tools',
+            'programming'         => 'Developer Tools',
+            'security'            => 'Security',
+            'antivirus'           => 'Security',
+            'network'             => 'Networking',
+            'internet'            => 'Networking',
+            'education'           => 'Education',
+            'game'                => 'Games',
+            'tools'               => 'Utilities',
+            'utility'             => 'Utilities',
+            'system'              => 'Utilities',
+        ];
+        foreach ($map as $keyword => $category) {
+            if (str_contains($cat, $keyword)) return $category;
+        }
+        return 'Other';
+    }
 
     /**
      * iTunes / App Store search — the best source for mobile and desktop app icons.
