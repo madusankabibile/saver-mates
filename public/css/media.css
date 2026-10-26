@@ -94,7 +94,7 @@ kbd {
 
 .mv-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 1.6rem 1.1rem;
 }
 
@@ -104,10 +104,10 @@ kbd {
 .mv-thumb {
     position: relative;
     display: block;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 2 / 3;
     border-radius: var(--r-lg);
     overflow: hidden;
-    background: linear-gradient(135deg, hsl(var(--hue, 150) 55% 32%), hsl(calc(var(--hue, 150) + 40) 60% 18%));
+    background: linear-gradient(160deg, hsl(var(--hue, 150) 55% 32%), hsl(calc(var(--hue, 150) + 40) 60% 18%));
 }
 
 .mv-thumb img {
