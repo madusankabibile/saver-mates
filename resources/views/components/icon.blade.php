@@ -59,6 +59,7 @@
         'disc' => '<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="2.4"/>',
         'thumb' => '<path d="M7.5 10.5v9h-3v-9Z"/><path d="M7.5 10.5 11 4a2 2 0 0 1 2.8 2.2l-.8 3.3h5.2a2 2 0 0 1 2 2.4l-1.2 6a2 2 0 0 1-2 1.6H7.5"/>',
         'thumb-fill' => '<path d="M7.5 10.5v9h-3v-9Z" fill="currentColor"/><path d="M7.5 10.5 11 4a2 2 0 0 1 2.8 2.2l-.8 3.3h5.2a2 2 0 0 1 2 2.4l-1.2 6a2 2 0 0 1-2 1.6H7.5Z" fill="currentColor"/>',
+        'package' => '<path d="m12 3-8.5 4.9v8.2L12 21l8.5-4.9V7.9Z"/><path d="M12 3v18"/><path d="m3.5 7.9 8.5 4.9 8.5-4.9"/><path d="M7.7 5.4 16.3 10"/>',
     ];
 @endphp
 

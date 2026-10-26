@@ -5,6 +5,7 @@
         ['route' => 'feed.index',      'label' => 'Newsfeed',      'icon' => 'feed',   'active' => ['feed.index', 'posts.show']],
         ['route' => 'directory.index', 'label' => 'Colleagues',    'icon' => 'people', 'active' => ['directory.index'], 'auth' => true],
         ['route' => 'movies.index',    'label' => 'Movies',        'icon' => 'film',   'active' => ['movies.index', 'movies.show', 'movies.create', 'movies.edit']],
+        ['route' => 'software.index', 'label' => 'Software',      'icon' => 'package','active' => ['software.index', 'software.show', 'software.create', 'software.edit']],
         ['route' => 'songs.index',     'label' => 'Songs',         'icon' => 'music',  'active' => ['songs.index', 'songs.artists', 'songs.create', 'songs.edit', 'playlists.index', 'playlists.show']],
         ['route' => 'drive.index',     'label' => 'My Drive',      'icon' => 'cloud',  'active' => ['drive.index', 'drive.folder'], 'auth' => true],
         ['route' => 'drive.public',    'label' => 'Network Drive', 'icon' => 'globe',  'active' => ['drive.public']],

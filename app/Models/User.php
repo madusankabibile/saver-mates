@@ -98,6 +98,11 @@ class User extends Authenticatable
         return $this->hasMany(Playlist::class)->latest();
     }
 
+    public function software(): HasMany
+    {
+        return $this->hasMany(Software::class)->latest();
+    }
+
     /* ---------------------------------------------------------------- */
     /* Roles and moderation                                              */
     /* ---------------------------------------------------------------- */

@@ -13,6 +13,7 @@ use App\Http\Controllers\FeedController;
 use App\Http\Controllers\GroupChatController;
 use App\Http\Controllers\MovieCommentController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\SoftwareController;
 use App\Http\Controllers\PlaylistController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
@@ -44,6 +45,11 @@ Route::get('/files/{file}/download', [DriveController::class, 'download'])->name
 Route::get('/movies', [MovieController::class, 'index'])->name('movies.index');
 Route::get('/movies/{movie}', [MovieController::class, 'show'])->whereNumber('movie')->name('movies.show');
 Route::post('/movies/{movie}/view', [MovieController::class, 'view'])->whereNumber('movie')->name('movies.view');
+
+// Software — public browsing and detail pages
+Route::get('/software', [SoftwareController::class, 'index'])->name('software.index');
+Route::get('/software/{software}', [SoftwareController::class, 'show'])->whereNumber('software')->name('software.show');
+Route::post('/software/{software}/download', [SoftwareController::class, 'download'])->whereNumber('software')->name('software.download');
 
 Route::get('/songs', [SongController::class, 'index'])->name('songs.index');
 Route::get('/songs/artists', [SongController::class, 'artistIndex'])->name('songs.artists');
@@ -142,6 +148,15 @@ Route::middleware('auth')->group(function () {
 
     /* Large uploads arrive in chunks ------------------------------------ */
     Route::post('/uploads/chunks', [UploadController::class, 'chunk'])->name('uploads.chunk');
+
+    /* Software ---------------------------------------------------------- */
+    Route::get('/software/upload', [SoftwareController::class, 'create'])->name('software.create');
+    Route::post('/software', [SoftwareController::class, 'store'])->name('software.store');
+    Route::get('/software/lookup', [SoftwareController::class, 'lookup'])->middleware('throttle:30,1')->name('software.lookup');
+    Route::get('/software/{software}/edit', [SoftwareController::class, 'edit'])->whereNumber('software')->name('software.edit');
+    Route::post('/software/{software}', [SoftwareController::class, 'update'])->whereNumber('software')->name('software.update');
+    Route::delete('/software/{software}', [SoftwareController::class, 'destroy'])->whereNumber('software')->name('software.destroy');
+    Route::post('/software/{software}/like', [SoftwareController::class, 'like'])->whereNumber('software')->name('software.like');
 
     /* Movies ------------------------------------------------------------ */
     Route::get('/movies/upload', [MovieController::class, 'create'])->name('movies.create');
