@@ -66,6 +66,7 @@ class SoftwareController extends Controller
             'os_type'      => ['nullable', Rule::in(Software::OS_TYPES)],
             'category'     => ['nullable', Rule::in(Software::CATEGORIES)],
             'thumbnail'    => ['nullable', 'image', 'max:4096'],
+            'image_url'    => ['nullable', 'string', 'max:500'],
         ]);
 
         $user      = $request->user();
@@ -107,6 +108,13 @@ class SoftwareController extends Controller
         }
 
         $thumbPath = null;
+        if (! $request->hasFile('thumbnail') && ! empty($data['image_url'])) {
+            $bytes = SoftwareLookup::thumbnail(['image' => $data['image_url']]);
+            if ($bytes) {
+                $thumbPath = 'software/thumbs/' . Str::random(20) . '.jpg';
+                Storage::disk(Software::DISK)->put($thumbPath, $bytes);
+            }
+        }
         if ($request->hasFile('thumbnail')) {
             $thumb     = $request->file('thumbnail');
             $thumbName = Str::random(20) . '.jpg';
@@ -144,8 +152,6 @@ class SoftwareController extends Controller
             return response()->json(['found' => false]);
         }
 
-        $thumbBytes = SoftwareLookup::thumbnail($match);
-
         return response()->json([
             'found'       => true,
             'title'       => $match['title'],
@@ -153,7 +159,7 @@ class SoftwareController extends Controller
             'description' => $match['description'],
             'os_type'     => $match['os_type'],
             'category'    => $match['category'],
-            'thumbnail'   => $thumbBytes ? 'data:image/jpeg;base64,' . base64_encode($thumbBytes) : null,
+            'image_url'   => $match['image'] ?? null,
         ]);
     }
 

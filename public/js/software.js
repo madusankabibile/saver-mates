@@ -112,13 +112,11 @@
 
                 if (lookupNote) lookupNote.textContent = `We found details for "${d.title}". Check and adjust anything you like.`;
 
-                if (d.thumbnail) {
-                    const blob = await fetch(d.thumbnail).then((r) => r.blob());
+                if (d.image_url) {
                     if (token !== lookupToken) return;
-                    const url  = URL.createObjectURL(blob);
-                    thumbPrev.innerHTML = `<img src="${url}" alt="Thumbnail preview">`;
-                    // Store a pseudo file we can submit.
-                    form._lookupThumb = blob;
+                    thumbPrev.innerHTML = `<img src="${d.image_url}" alt="Thumbnail preview" crossorigin="anonymous">`;
+                    form._lookupImageUrl = d.image_url;
+                    form._lookupThumb = null;
                 }
             } catch (_) {
                 if (token === lookupToken && lookupNote) {
@@ -132,6 +130,7 @@
             const f = thumbInput.files[0];
             if (!f) return;
             form._lookupThumb = null;
+            form._lookupImageUrl = null;
             const url = URL.createObjectURL(f);
             thumbPrev.innerHTML = `<img src="${url}" alt="Thumbnail preview">`;
         });
@@ -149,6 +148,7 @@
 
             file = f;
             form._lookupThumb = null;
+            form._lookupImageUrl = null;
             lookupToken = null;
             autoFilled = {};
             userEdited = {};
@@ -254,12 +254,12 @@
                 data.append('os_type',      $('#sw-os_type',      form)?.value || '');
                 data.append('category',     $('#sw-category',     form)?.value || '');
 
-                // Thumbnail: prefer user-chosen file over the lookup image.
+                // Thumbnail: prefer user-chosen file, then lookup image URL (server fetches it).
                 const thumbFile = thumbInput.files[0];
                 if (thumbFile) {
                     data.append('thumbnail', thumbFile);
-                } else if (form._lookupThumb) {
-                    data.append('thumbnail', form._lookupThumb, 'thumbnail.jpg');
+                } else if (form._lookupImageUrl) {
+                    data.append('image_url', form._lookupImageUrl);
                 }
 
                 // Add CSRF token.
