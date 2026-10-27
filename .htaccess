@@ -1,0 +1,22 @@
+# When SaverMate sits in a subdirectory (e.g. http://localhost/savermates),
+# send visitors on to public/, which is where Laravel is served from.
+# Rewriting requests into public/ from here breaks Laravel's base-path
+# detection, so this is a redirect, not a rewrite. The folder name is read
+# from the request, so the project can be installed under any name.
+#
+# For a clean URL point a virtual host straight at public/ instead.
+# See README.md.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} ^(.*?)/?$
+    RewriteRule ^$ %1/public/ [R=302,L]
+
+    # Only public/ is meant for the web. storage/ holds private drive files
+    # and logs, so everything else in the project folder is refused.
+    RewriteRule !^public(/|$) - [F,L]
+</IfModule>
+
+# Never serve application internals.
+<FilesMatch "^(\.env.*|composer\.(json|lock)|artisan|phpunit\.xml|package\.json|vite\.config\.js)$">
+    Require all denied
+</FilesMatch>

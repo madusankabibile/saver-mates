@@ -1,0 +1,1 @@
+<svg class="ticks" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="tick-1" d="m1.5 6.5 3.2 3.2L11 2.5"/><path class="tick-2" d="m7.6 9.4.3.3L14.2 2.5"/></svg>
